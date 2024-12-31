@@ -3,35 +3,54 @@ using System.Threading;
 
 namespace SeverCore
 {
+	// 메모리 배리어
+	// A) 코드 재배치 억제
+	// B) 가시성
+
+	// 1) Full Memory Barrier (ASM MFENCE, C# Thread.MemoryBarrier) : Store / Load 둘다 막는다.
+	// 2) Store Memory Barrier (ASM MFENCEE): Store만 막는다.
+	// 3) Load Memory Barrier (ASM LFENCE): Load만 막는다. 
 	class Program
 	{
+		static int x = 0;
+		static int y = 0;
+		static int r1 = 0;
+		static int r2 = 0;
+
+		static void Thread_1()
+		{
+			y = 1;
+
+			Thread.MemoryBarrier();
+			r1 = x;
+		}
+
+		static void Thread_2()
+		{
+			x = 1;
+			Thread.MemoryBarrier();
+			r2 = y;
+		}
+
 		static void Main(string[] args)
 		{
-			int[,] arr = new int[10000, 10000];
+			int count = 0;
+			while (true)
 			{
-				long now = DateTime.Now.Ticks;
-				for (int i = 0; i < 10000; i++)
-				{
-					for (int j = 0; j < 10000; j++)
-					{
-						arr[j, i] = 1;
-					}
-				}
-				long end = DateTime.Now.Ticks;
-				Console.WriteLine($"(j, i) 순서 걸린 시간 {end - now}");
-			}
+				count++;
+				x = y = r1 = r2 = 0;
+				Task t1 = new Task(Thread_1);
+				Task t2 = new Task(Thread_2);
+				t1.Start();
+				t2.Start();
+				Task.WaitAll(t1, t2);
 
-			{
-				long now = DateTime.Now.Ticks;
-				for (int i = 0; i < 10000; i++)
+				if (r1 == 0 && r2 == 0)
 				{
-					for (int j = 0; j < 10000; j++)
-					{
-						arr[i, j] = 1;
-					}
+					break;
 				}
-				long end = DateTime.Now.Ticks;
-				Console.WriteLine($"(i, j) 순서 걸린 시간 {end - now}");
+
+				Console.WriteLine($"{count}번만에 빠져나옴!");
 			}
 		}
 	}
