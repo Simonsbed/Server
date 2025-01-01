@@ -4,56 +4,45 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace SeverCore
 {
-	class SpinLock
-	{
-		volatile int _locked = 0;
-		public void Acquire()
-		{
-			while (true)
-			{
-				//int original = Interlocked.Exchange(ref _locked, 1);
-				//if (original == 0)
-				//{
-				//	break;
-				//}
+	//class Lock
+	//{
+	//	// bool <- 커널
+	//	ManualResetEvent _available = new ManualResetEvent(false);
+	//	//AutoResetEvent _available = new AutoResetEvent(true);
+	//	public void Acquire()
+	//	{
+	//		_available.WaitOne(); // 입장 시도
+	//		_available.Reset(); // 문을 닫느다 
+	//	}
 
-				// CAS Compare-And-Swap
-				int expected = 0;
-				int desired = 1;
-				if (Interlocked.CompareExchange(ref _locked, desired, expected) == expected)
-					break;
-
-			}
-		}
-
-		public void Release() 
-		{
-			_locked = 0;
-		}
-	}
+	//	public void Release() 
+	//	{
+	//		_available.Set();
+	//	}
+	//}
 	 
 	class Program
 	{
 		static int _num = 0;
-		static SpinLock _lock = new SpinLock();
+		static Mutex _lock = new Mutex();
 		static void Thread_1() 
 		{
-			for (int i = 0; i < 1000000; i++)
+			for (int i = 0; i < 10000; i++)
 			{
-				_lock.Acquire();
+				_lock.WaitOne();
 				_num--;
-				_lock.Release();
+				_lock.ReleaseMutex();
 			}
 		
 		}
 
 		static void Thread_2()
 		{
-			for (int i = 0; i < 1000000; i++)
+			for (int i = 0; i < 10000; i++)
 			{
-				_lock.Acquire();
+				_lock.WaitOne();
 				_num++;
-				_lock.Release();
+				_lock.ReleaseMutex();
 			}
 		}
 
